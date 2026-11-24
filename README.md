@@ -24,4 +24,4 @@ This creates a `dist` folder, which Vercel, Netlify or GitHub Pages can publish.
 Save your picture as `public/photo.jpg` (portrait, about 800 x 1000 px). Until then, your initials show instead.
 
 ## Contact form
-Messages are sent directly from the site to the email address configured in `src/data.js` using FormSubmit. On first use, FormSubmit emails a one-time confirmation link; confirm it to enable delivery. After confirmation, visitors can submit without leaving the page.
+The contact form opens the visitor’s default email app with the message addressed to the email in `src/data.js`. The visitor reviews and sends the draft from that app.

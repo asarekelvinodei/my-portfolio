@@ -136,33 +136,20 @@ export function Work({ projects }) {
 
 export function Contact({ me }) {
   const [st, setSt] = useState('idle')
-  const [err, setErr] = useState('')
-  const submit = async (e) => {
+  const [mailHref, setMailHref] = useState('')
+  const submit = (e) => {
     e.preventDefault()
-    const f = e.currentTarget
-    const d = new FormData(f)
-    if (d.get('_honey')) return
-    setSt('sending')
-    try {
-      const r = await fetch('https://formsubmit.co/ajax/' + me.email, {
-        method: 'POST',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body: new URLSearchParams(d),
-      })
-      const result = await r.json()
-      if (/activat|confirm/i.test(result.message || '')) {
-        setSt('activation')
-        setErr('Check your inbox for the one-time FormSubmit confirmation. Confirm it to enable message delivery.')
-        return
-      }
-      if (!r.ok || (result.success !== true && result.success !== 'true')) {
-        throw new Error(result.message || 'The form service rejected the message.')
-      }
-      setSt('done'); f.reset()
-    } catch (error) {
-      if (!(error instanceof Error)) throw error
-      setSt('error'); setErr(`Your message did not send: ${error.message}. Please try again or email me directly.`)
-    }
+    const data = new FormData(e.currentTarget)
+    if (data.get('_honey')) return
+    const name = String(data.get('name') || '').trim()
+    const email = String(data.get('email') || '').trim()
+    const message = String(data.get('message') || '').trim()
+    const subject = `Portfolio inquiry from ${name}`
+    const body = `Name: ${name}\nEmail: ${email}\n\n${message}`
+    const href = `mailto:${me.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    setMailHref(href)
+    setSt('launching')
+    window.location.href = href
   }
   return (
     <section className="wrap section contact" id="contact">
@@ -177,7 +164,7 @@ export function Contact({ me }) {
       <form className="form" onSubmit={submit}>
         <div className="form-heading">
           <span>Send a message</span>
-          <p>I’ll get back to you as soon as I can.</p>
+          <p>Your email app will open with the message ready to send.</p>
         </div>
         <div className="form-row">
           <label>Name<input name="name" required autoComplete="name" placeholder="Your name" /></label>
@@ -185,8 +172,10 @@ export function Contact({ me }) {
         </div>
         <label>Message<textarea name="message" rows="5" required placeholder="What would you like to discuss?" /></label>
         <input className="hp" name="_honey" tabIndex="-1" autoComplete="off" aria-hidden="true" />
-        <button className="btn primary" disabled={st === 'sending'}>{st === 'sending' ? 'Sending' : 'Send message'} <span aria-hidden="true">↗</span></button>
-        <p className={'note ' + st} role="status">{st === 'done' ? 'Thank you. Your message is on its way, and I will reply soon.' : st === 'error' || st === 'activation' ? err : ''}</p>
+        <button className="btn primary">Open email draft <span aria-hidden="true">↗</span></button>
+        <p className={'note ' + st} role="status">
+          {st === 'launching' && <>Your email app should open. If it doesn’t, <a href={mailHref}>open the drafted email here</a>.</>}
+        </p>
       </form>
     </section>
   )
