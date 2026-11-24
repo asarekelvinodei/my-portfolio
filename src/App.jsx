@@ -21,9 +21,10 @@ function useReveal() {
 
 export default function App() {
   const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark')
-  const [prog, setProg] = useState(0)
   const [active, setActive] = useState('')
   const [menu, setMenu] = useState(false)
+  const progressRef = useRef(null)
+  const backdropRef = useRef(null)
   useReveal()
 
   useEffect(() => {
@@ -32,13 +33,25 @@ export default function App() {
   }, [theme])
 
   useEffect(() => {
+    let raf = 0
     const f = () => {
-      const h = document.documentElement
-      setProg(h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight))
+      if (raf) return
+      raf = requestAnimationFrame(() => {
+        raf = 0
+        const h = document.documentElement
+        const progress = h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight)
+        backdropRef.current?.style.setProperty('--p', progress)
+        if (progressRef.current) progressRef.current.style.transform = `scaleX(${progress})`
+      })
     }
     f()
     addEventListener('scroll', f, { passive: true })
-    return () => removeEventListener('scroll', f)
+    addEventListener('resize', f)
+    return () => {
+      cancelAnimationFrame(raf)
+      removeEventListener('scroll', f)
+      removeEventListener('resize', f)
+    }
   }, [])
 
   useEffect(() => {
@@ -65,7 +78,7 @@ export default function App() {
       e.preventDefault()
       setMenu(false)
       history.pushState(null, '', '#' + id)
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      target.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
     }
     document.addEventListener('click', smoothAnchor)
     return () => document.removeEventListener('click', smoothAnchor)
@@ -82,11 +95,11 @@ export default function App() {
   return (
     <>
       <Cursor />
-      <div className="bg" aria-hidden="true" style={{ '--p': prog }}>
+      <div className="bg" aria-hidden="true" ref={backdropRef}>
         <i className="orb o1" /><i className="orb o2" /><i className="orb o3" />
         <i className="grid" /><Constellation /><i className="grain" />
       </div>
-      <div className="progress" style={{ transform: `scaleX(${prog})` }} />
+      <div className="progress" ref={progressRef} />
 
       <header className="top">
         <div className="nav wrap">
@@ -191,7 +204,6 @@ export default function App() {
                   <p className="education-school">{e.school}</p>
                   <p className="education-detail">{e.detail}</p>
                 </div>
-                <span className="education-arrow" aria-hidden="true">↗</span>
               </article>
             ))}
           </div>

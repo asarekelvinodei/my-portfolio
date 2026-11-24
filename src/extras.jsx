@@ -71,54 +71,63 @@ export function ScrollWords({ text }) {
   const [p, setP] = useState(reduced() ? 1 : 0)
   useEffect(() => {
     if (reduced()) return
-    const f = () => setP(clamp((innerHeight * 0.9 - ref.current.getBoundingClientRect().top) / (innerHeight * 0.5)))
+    let raf = 0
+    const f = () => {
+      if (raf) return
+      raf = requestAnimationFrame(() => {
+        raf = 0
+        const next = clamp((innerHeight * 0.9 - ref.current.getBoundingClientRect().top) / (innerHeight * 0.5))
+        setP((current) => Math.abs(current - next) < 0.01 ? current : next)
+      })
+    }
     f()
     addEventListener('scroll', f, { passive: true })
-    return () => removeEventListener('scroll', f)
+    return () => {
+      cancelAnimationFrame(raf)
+      removeEventListener('scroll', f)
+    }
   }, [])
   const w = text.split(' ')
   return <p className="about" ref={ref}>{w.map((x, i) => <span key={i} className={i < p * w.length ? 'lit' : ''}>{x} </span>)}</p>
 }
 
 export function Work({ projects }) {
-  const sec = useRef(null)
-  const track = useRef(null)
-  useEffect(() => {
-    const wide = matchMedia('(min-width: 861px)')
-    const f = () => {
-      const s = sec.current, t = track.current
-      if (!wide.matches) { t.style.transform = ''; s.style.height = ''; return }
-      const dist = Math.max(0, t.scrollWidth - innerWidth)
-      s.style.height = dist + innerHeight + 'px'
-      t.style.transform = `translateX(${-clamp(-s.getBoundingClientRect().top / (dist || 1)) * dist}px)`
-    }
-    f()
-    addEventListener('scroll', f, { passive: true })
-    addEventListener('resize', f)
-    return () => { removeEventListener('scroll', f); removeEventListener('resize', f) }
-  }, [])
   return (
-    <section className="work" id="work" ref={sec}>
-      <div className="pin">
-        <div className="wrap"><h2 className="sh">Selected work</h2></div>
-        <div className="track" ref={track}>
-          {projects.map((p, i) => (
-            <article className="pcard" key={p.title} style={{ '--h': [220, 165, 280][i % 3] }}>
-              <div className="cover"><span>{p.title[0]}</span></div>
-              <div className="pbody">
-                <p className="chips left">{p.tags.map((t) => <span key={t}>{t}</span>)}</p>
-                <h3>{p.title}</h3>
-                <p>{p.text}</p>
-                {p.href && <a className="btn" href={p.href} target="_blank" rel="noreferrer">Open project</a>}
-                {p.readHref && (
-                  <div className="project-actions">
-                    <a className="btn" href={p.readHref} target="_blank" rel="noreferrer">Read</a>
-                    {p.downloadHref && <a className="btn primary" href={p.downloadHref} download>Download thesis</a>}
-                  </div>
-                )}
-              </div>
-            </article>
-          ))}
+    <section className="work" id="work">
+      <div className="wrap">
+        <div className="work-heading">
+          <div>
+            <p className="work-kicker">Selected projects</p>
+            <h2 className="sh">Selected work</h2>
+          </div>
+          <span className="work-count">0{projects.length} projects</span>
+        </div>
+        <div className="track">
+          {projects.map((p, i) => {
+            const destination = p.href || p.readHref
+            return (
+              <article className="pcard" key={p.title} style={{ '--h': [220, 165, 280][i % 3] }}>
+                {destination && <a className="card-hit" href={destination} target="_blank" rel="noreferrer" aria-label={'Open ' + p.title} />}
+                <div className="cover" aria-hidden="true">
+                  <span>{String(i + 1).padStart(2, '0')}</span>
+                  <i>{p.category}</i>
+                  <b>↗</b>
+                </div>
+                <div className="pbody">
+                  <p className="chips left">{p.tags.map((t) => <span key={t}>{t}</span>)}</p>
+                  <h3>{p.title}</h3>
+                  <p>{p.text}</p>
+                  {p.href && <a className="btn" href={p.href} target="_blank" rel="noreferrer">Visit project</a>}
+                  {p.readHref && (
+                    <div className="project-actions">
+                      <a className="btn" href={p.readHref} target="_blank" rel="noreferrer">Read thesis</a>
+                      {p.downloadHref && <a className="btn primary" href={p.downloadHref} download>Download thesis</a>}
+                    </div>
+                  )}
+                </div>
+              </article>
+            )
+          })}
         </div>
       </div>
     </section>
@@ -145,17 +154,26 @@ export function Contact({ me }) {
   }
   return (
     <section className="wrap section contact" id="contact">
-      <div>
+      <div className="contact-intro">
+        <p className="contact-kicker">Open to thoughtful projects</p>
         <h2 className="sh">Get in touch</h2>
-        <a className="mail" href={'mailto:' + me.email}>{me.email}</a>
+        <p className="contact-copy">Have a system to improve, a data question, or a project in mind? Send me a note and tell me what you are working on.</p>
+        <span className="contact-email-label">Email me directly</span>
+        <a className="mail" href={'mailto:' + me.email}>{me.email}<span aria-hidden="true"> ↗</span></a>
         <p className="links">{me.links.map((l) => <a key={l.label} href={l.href} target="_blank" rel="noreferrer">{l.label}</a>)}</p>
       </div>
       <form className="form" onSubmit={submit}>
-        <label>Name<input name="name" required autoComplete="name" /></label>
-        <label>Email<input name="email" type="email" required autoComplete="email" /></label>
-        <label>Message<textarea name="message" rows="5" required /></label>
+        <div className="form-heading">
+          <span>Send a message</span>
+          <p>I’ll get back to you as soon as I can.</p>
+        </div>
+        <div className="form-row">
+          <label>Name<input name="name" required autoComplete="name" placeholder="Your name" /></label>
+          <label>Email<input name="email" type="email" required autoComplete="email" placeholder="you@example.com" /></label>
+        </div>
+        <label>Message<textarea name="message" rows="5" required placeholder="What would you like to discuss?" /></label>
         <input className="hp" name="company" tabIndex="-1" autoComplete="off" aria-hidden="true" />
-        <button className="btn primary" disabled={st === 'sending'}>{st === 'sending' ? 'Sending' : 'Send message'}</button>
+        <button className="btn primary" disabled={st === 'sending'}>{st === 'sending' ? 'Sending' : 'Send message'} <span aria-hidden="true">↗</span></button>
         <p className={'note ' + st} role="status">{st === 'done' ? 'Thank you. Your message is on its way, and I will reply soon.' : st === 'error' ? err : ''}</p>
       </form>
     </section>
