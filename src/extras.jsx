@@ -1,33 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import Icon from './icons'
 
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 const clamp = (v) => Math.min(1, Math.max(0, v))
-
-export function Intro({ name }) {
-  const [n, setN] = useState(0)
-  const [gone, setGone] = useState(reduced)
-  useEffect(() => {
-    if (gone) return
-    let raf
-    const t0 = performance.now()
-    const tick = (t) => {
-      const k = clamp((t - t0) / 1400)
-      setN(Math.round(k * 100))
-      if (k < 1) raf = requestAnimationFrame(tick)
-      else setTimeout(() => setGone(true), 1100)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [gone])
-  if (gone) return null
-  return (
-    <div className={'intro' + (n === 100 ? ' lift' : '')} aria-hidden="true">
-      <span>{name}</span>
-      <strong>{n}</strong>
-    </div>
-  )
-}
 
 export function Cursor() {
   const dot = useRef(null)
@@ -136,6 +110,12 @@ export function Work({ projects }) {
                 <h3>{p.title}</h3>
                 <p>{p.text}</p>
                 {p.href && <a className="btn" href={p.href} target="_blank" rel="noreferrer">Open project</a>}
+                {p.readHref && (
+                  <div className="project-actions">
+                    <a className="btn" href={p.readHref} target="_blank" rel="noreferrer">Read</a>
+                    {p.downloadHref && <a className="btn primary" href={p.downloadHref} download>Download thesis</a>}
+                  </div>
+                )}
               </div>
             </article>
           ))}
@@ -147,26 +127,21 @@ export function Work({ projects }) {
 
 export function Contact({ me }) {
   const [st, setSt] = useState('idle')
-  const [fb, setFb] = useState('')
+  const [err, setErr] = useState('')
   const submit = async (e) => {
     e.preventDefault()
     const f = e.currentTarget
-    const d = Object.fromEntries(new FormData(f))
-    if (d.company) return
-    const subject = 'Portfolio message from ' + d.name
-    setFb('mailto:' + me.email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(d.message + '\n\n' + d.name + ' (' + d.email + ')'))
+    const d = new FormData(f)
+    if (d.get('company')) return
+    if (!me.formId || me.formId === 'YOUR_FORM_ID') {
+      setSt('error'); setErr('The form is not connected yet. Please email me directly.'); return
+    }
     setSt('sending')
     try {
-      const own = me.formId && me.formId !== 'YOUR_FORM_ID'
-      const r = await fetch(own ? 'https://formspree.io/f/' + me.formId : 'https://formsubmit.co/ajax/' + me.email, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ name: d.name, email: d.email, message: d.message, _subject: subject, _template: 'table' }),
-      })
-      const j = await r.json().catch(() => ({}))
-      if (!r.ok || j.success === 'false' || j.success === false) throw new Error('send failed')
+      const r = await fetch('https://formspree.io/f/' + me.formId, { method: 'POST', body: d, headers: { Accept: 'application/json' } })
+      if (!r.ok) throw new Error('bad')
       setSt('done'); f.reset()
-    } catch (x) { setSt('error') }
+    } catch (x) { setSt('error'); setErr('Your message did not send. Please try again or email me.') }
   }
   return (
     <section className="wrap section contact" id="contact">
@@ -180,40 +155,10 @@ export function Contact({ me }) {
         <label>Email<input name="email" type="email" required autoComplete="email" /></label>
         <label>Message<textarea name="message" rows="5" required /></label>
         <input className="hp" name="company" tabIndex="-1" autoComplete="off" aria-hidden="true" />
-        <button className="btn primary" disabled={st === 'sending'}><Icon n="mail" size={16} /> {st === 'sending' ? 'Sending' : 'Send message'}</button>
-        <p className={'note ' + st} role="status">
-          {st === 'done' && 'Thank you. Your message has been sent, and I will reply soon.'}
-          {st === 'error' && <>It did not send from here. <a className="fallback" href={fb}>Open it in your email app instead</a>.</>}
-        </p>
+        <button className="btn primary" disabled={st === 'sending'}>{st === 'sending' ? 'Sending' : 'Send message'}</button>
+        <p className={'note ' + st} role="status">{st === 'done' ? 'Thank you. Your message is on its way, and I will reply soon.' : st === 'error' ? err : ''}</p>
       </form>
     </section>
-  )
-}
-
-export function CvModal({ open, onClose, src }) {
-  const btn = useRef(null)
-  useEffect(() => {
-    if (!open) return
-    btn.current && btn.current.focus()
-    const esc = (e) => e.key === 'Escape' && onClose()
-    addEventListener('keydown', esc)
-    return () => removeEventListener('keydown', esc)
-  }, [open, onClose])
-  const t = open ? 0 : -1
-  return (
-    <div className={'modal' + (open ? ' open' : '')} aria-hidden={!open} onClick={onClose}>
-      <div className="sheetbox" role="dialog" aria-modal="true" aria-label="Curriculum vitae" onClick={(e) => e.stopPropagation()}>
-        <div className="mbar">
-          <strong>Curriculum vitae</strong>
-          <span className="mact">
-            <a className="btn" href={src} download tabIndex={t}><Icon n="download" size={16} /> Download</a>
-            <a className="btn" href={src} target="_blank" rel="noreferrer" tabIndex={t}><Icon n="arrow" size={16} /> New tab</a>
-            <button className="theme" ref={btn} onClick={onClose} aria-label="Close CV" tabIndex={t}><Icon n="x" size={18} /></button>
-          </span>
-        </div>
-        {open && <iframe title="Kelvin Odei Asare CV" src={src + '#view=FitH'} />}
-      </div>
-    </div>
   )
 }
 
