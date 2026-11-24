@@ -141,16 +141,28 @@ export function Contact({ me }) {
     e.preventDefault()
     const f = e.currentTarget
     const d = new FormData(f)
-    if (d.get('company')) return
-    if (!me.formId || me.formId === 'YOUR_FORM_ID') {
-      setSt('error'); setErr('The form is not connected yet. Please email me directly.'); return
-    }
+    if (d.get('_honey')) return
     setSt('sending')
     try {
-      const r = await fetch('https://formspree.io/f/' + me.formId, { method: 'POST', body: d, headers: { Accept: 'application/json' } })
-      if (!r.ok) throw new Error('bad')
+      const r = await fetch('https://formsubmit.co/ajax/' + me.email, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: new URLSearchParams(d),
+      })
+      const result = await r.json()
+      if (/activat|confirm/i.test(result.message || '')) {
+        setSt('activation')
+        setErr('Check your inbox for the one-time FormSubmit confirmation. Confirm it to enable message delivery.')
+        return
+      }
+      if (!r.ok || (result.success !== true && result.success !== 'true')) {
+        throw new Error(result.message || 'The form service rejected the message.')
+      }
       setSt('done'); f.reset()
-    } catch (x) { setSt('error'); setErr('Your message did not send. Please try again or email me.') }
+    } catch (error) {
+      if (!(error instanceof Error)) throw error
+      setSt('error'); setErr(`Your message did not send: ${error.message}. Please try again or email me directly.`)
+    }
   }
   return (
     <section className="wrap section contact" id="contact">
@@ -172,9 +184,9 @@ export function Contact({ me }) {
           <label>Email<input name="email" type="email" required autoComplete="email" placeholder="you@example.com" /></label>
         </div>
         <label>Message<textarea name="message" rows="5" required placeholder="What would you like to discuss?" /></label>
-        <input className="hp" name="company" tabIndex="-1" autoComplete="off" aria-hidden="true" />
+        <input className="hp" name="_honey" tabIndex="-1" autoComplete="off" aria-hidden="true" />
         <button className="btn primary" disabled={st === 'sending'}>{st === 'sending' ? 'Sending' : 'Send message'} <span aria-hidden="true">↗</span></button>
-        <p className={'note ' + st} role="status">{st === 'done' ? 'Thank you. Your message is on its way, and I will reply soon.' : st === 'error' ? err : ''}</p>
+        <p className={'note ' + st} role="status">{st === 'done' ? 'Thank you. Your message is on its way, and I will reply soon.' : st === 'error' || st === 'activation' ? err : ''}</p>
       </form>
     </section>
   )

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Lenis from 'lenis'
 import { me, projects, jobs, education, tools, groups } from './data'
 import Network from './Network'
 import { Cursor, Portrait, ScrollWords, Work, Contact, Constellation } from './extras'
@@ -26,6 +27,17 @@ export default function App() {
   const progressRef = useRef(null)
   const backdropRef = useRef(null)
   useReveal()
+
+  useEffect(() => {
+    const lenis = new Lenis({
+      autoRaf: true,
+      lerp: 0.085,
+      smoothWheel: true,
+      syncTouch: false,
+      respectReducedMotion: true,
+    })
+    return () => lenis.destroy()
+  }, [])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -78,7 +90,8 @@ export default function App() {
       e.preventDefault()
       setMenu(false)
       history.pushState(null, '', '#' + id)
-      target.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+      const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
+      target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
     }
     document.addEventListener('click', smoothAnchor)
     return () => document.removeEventListener('click', smoothAnchor)

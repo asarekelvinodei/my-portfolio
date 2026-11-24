@@ -24,6 +24,4 @@ This creates a `dist` folder, which Vercel, Netlify or GitHub Pages can publish.
 Save your picture as `public/photo.jpg` (portrait, about 800 x 1000 px). Until then, your initials show instead.
 
 ## Contact form
-1. Sign up free at formspree.io and create a new form.
-2. Copy the ID from its endpoint (`https://formspree.io/f/abcd1234`, so the ID is `abcd1234`).
-3. Paste it into `formId` in `src/data.js`.
+Messages are sent directly from the site to the email address configured in `src/data.js` using FormSubmit. On first use, FormSubmit emails a one-time confirmation link; confirm it to enable delivery. After confirmation, visitors can submit without leaving the page.

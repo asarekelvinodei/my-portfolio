@@ -7,7 +7,6 @@ export const me = {
   email: 'asarekelvinodei@gmail.com',
   cv: '/My_CV.pdf',
   photo: '/photo.jpg', // put your picture at public/photo.jpg
-  formId: 'YOUR_FORM_ID', // from formspree.io, see README
   about: 'I am an Information Systems graduate who likes systems that quietly work. At the Lands Commission I kept a Windows domain healthy, tracked faults in a structured log and deployed new desktops. I co-led an evaluation of Ghana.gov’s electronic tax filing system, I turn messy data into dashboards in Excel and Tableau, and I build and maintain websites, including one for a registered NGO.',
   links: [
     { label: 'Tableau Public', href: 'https://public.tableau.com/app/profile/kelvin.asare.odei' },
